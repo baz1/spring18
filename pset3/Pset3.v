@@ -1,39 +1,53 @@
 (** * 6.822 Formal Reasoning About Programs, Spring 2018 - Pset 3 *)
 
-Require Import Frap Pset3Sig.
+Require Import Pset3Sig.
 
 (* Define the identity function [id], which just returns its
  * argument without modification.
  *)
-Definition id {A : Type} (x : A) : A.
-Admitted.
+Definition id {A} (x: A) : A := x.
 
 (* [compose] is another higher-order function: [compose g f]
  * applies [f] to its input and then applies [g]. Argument order
  * follows the general convention of functional composition in
  * mathematics denoted by the small circle.
  *)
-Definition compose {A B C : Type} (g : B -> C) (f : A -> B)
-           (x : A) : C.
-Admitted.
+Definition compose {A B C} (g: B -> C) (f: A -> B) : A -> C := fun (x: A) => (g (f x)).
 
 (* If we map the [id] function over any list, we get the
  * same list back.
  *)
-Theorem map_id : forall {A : Type} (xs : list A),
-    map id xs = xs.
+Theorem map_id : forall {A : Type} (xs : list A), map id xs = xs.
 Proof.
-Admitted.
+  intros A xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 (* If we map the composition of two functions over the list,
  * it's the same as mapping the first function over the whole list
  * and then mapping the second function over that resulting list.
  *)
 Theorem map_compose : forall {A B C : Type} (g : B -> C) (f : A -> B)
-                        (xs : list A),
+                             (xs : list A),
     map (compose g f) xs = map g (map f xs).
 Proof.
-Admitted.
+  intros A B C g f xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a q *)
+    intros a q hyp.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 (* Next we can show some classic properties that demonstrate a
  * certain sense in which [map] only modifies the elements of
@@ -46,17 +60,54 @@ Admitted.
 Theorem map_length : forall {A B : Type} (f : A -> B) (xs : list A),
     length (map f xs) = length xs.
 Proof.
-Admitted.
+  intros A B f xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 Theorem map_append : forall {A B : Type} (f : A -> B) (xs ys : list A),
     map f (xs ++ ys) = map f xs ++ map f ys.
 Proof.
-Admitted.
+  intros A B f xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp ys.
+    simpl.
+    rewrite (hyp ys).
+    reflexivity.
+Qed.
 
 Theorem map_rev : forall {A B : Type} (f : A -> B) (xs : list A),
     map f (rev xs) = rev (map f xs).
 Proof.
-Admitted.
+  intros A B f xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp.
+    simpl.
+    rewrite <- hyp.
+    assert (forall (l: list A), map f (l ++ a :: nil) = map f l ++ f a :: nil) as subgoal.
+    intros l.
+    elim l.
+      (* nit *)
+      reflexivity.
+      (* a2::q2 *)
+      intros a2 q2 hyp2.
+      simpl.
+      rewrite hyp2.
+      reflexivity.
+    refine (subgoal (rev q)).
+Qed.
 
 (* [fold] is a higher-order function that is even more general
  * than [map]. In essence, [fold f z] takes as input a list
@@ -68,26 +119,38 @@ Admitted.
  * the opposite way as the [left_fold] function that we defined
  * in lecture.
  *)
-Fixpoint fold {A B : Type} (b_cons : A -> B -> B) (b_nil : B)
-         (xs : list A) : B.
-Admitted.
+Fixpoint fold {A B} (f: A -> B -> B) (z: B) (l: list A) : B :=
+  match l with
+    | nil => z
+    | a::q => f a (fold f z q)
+  end.
 
 (* For instance, we should have
      fold plus 10 [1; 2; 3]
    = 1 + (2 + (3 + 10))
    = 16
  *)
-Example fold_example : fold plus 10 [1; 2; 3] = 16.
+Example fold_example : fold plus 10 (1::2::3::nil) = 16.
 Proof.
-Admitted.
+  reflexivity.
+Qed.
 
 (* Prove that [map] can actually be defined as a particular
  * sort of [fold].
  *)
-Definition map_is_fold : forall {A B : Type} (f : A -> B) (xs : list A),
+Theorem map_is_fold : forall {A B : Type} (f : A -> B) (xs : list A),
     map f xs = fold (fun x ys => cons (f x) ys) nil xs.
 Proof.
-Admitted.
+  intros A B f xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 (* Since [fold f z] replaces [cons] with [f] and [nil] with
  * [z], [fold cons nil] should be the identity function.
@@ -95,7 +158,16 @@ Admitted.
 Theorem fold_id : forall {A : Type} (xs : list A),
     fold cons nil xs = xs.
 Proof.
-Admitted.
+  intros A xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 (* If we apply [fold] to the concatenation of two lists,
  * it is the same as folding the "right" list and using
@@ -106,13 +178,21 @@ Theorem fold_append : forall {A : Type} (f : A -> A -> A) (z : A)
     fold f z (xs ++ ys) =
     fold f (fold f z ys) xs.
 Proof.
-Admitted.
+  intros A f z xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp ys.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 (* Using [fold], define a function that computes the
  * sum of a list of natural numbers.
  *)
-Definition sum : list nat -> nat.
-Admitted.
+Definition sum (l: list nat) : nat := fold plus O l.
 
 (* Note that [simplify] fails to reduce [ sum [1; 2; 3] ].
  * This is due to a quirk of [simplify]'s behavior: because
@@ -123,20 +203,21 @@ Admitted.
  * calling [simplify]. This should come in handy for future proofs
  * involving definitions that use [fold], too.
  *)
-Example sum_example : sum [1; 2; 3] = 6.
+Example sum_example : sum (1::2::3::nil) = 6.
 Proof.
-Admitted.
+  reflexivity.
+Qed.
 
 (* Using [fold], define a function that computes the
  * conjunction of a list of Booleans (where the 0-ary
  * conjunction is defined as [true]).
  *)
-Definition all : list bool -> bool.
-Admitted.
+Definition all (l: list bool) : bool := fold andb true l.
 
-Example all_example : all [true; false; true] = false.
+Example all_example : all (true::false::true::nil) = false.
 Proof.
-Admitted.
+  reflexivity.
+Qed.
 
 (* The following two theorems, [sum_append] and [all_append],
  * say that the sum of the concatenation of two lists
@@ -144,48 +225,86 @@ Admitted.
  * adding the result.
  *)
 Theorem sum_append : forall (xs ys : list nat),
-    sum (xs ++ ys) = sum xs + sum ys.
+      sum (xs ++ ys) = sum xs + sum ys.
 Proof.
-Admitted.
+  intros xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp ys.
+    unfold sum.
+    simpl.
+    unfold sum in hyp.
+    rewrite (hyp ys).
+    rewrite (plus_assoc a _ _).
+    reflexivity.
+Qed.
 
 Theorem all_append : forall (xs ys : list bool),
-    all (xs ++ ys) = andb (all xs) (all ys).
+      all (xs ++ ys) = andb (all xs) (all ys).
 Proof.
-Admitted.
+  intros xs.
+  unfold all.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp ys.
+    simpl.
+    unfold sum in hyp.
+    rewrite (hyp ys).
+    rewrite (andb_assoc a _ _).
+    reflexivity.
+Qed.
 
 (* Just like we defined [map] for lists, we can similarly define
  * a higher-order function [tree_map] which applies a function on
  * elements to all of the elements in the tree, leaving the tree
  * structure in tact.
  *)
-Fixpoint tree_map {A B : Type} (f : A -> B) (t : tree A)
-  : tree B.
-Admitted.
+Fixpoint tree_map {A B} (f: A -> B) (t: tree A) : tree B :=
+  match t with
+    | Leaf => Leaf
+    | Node l d r => Node (tree_map f l) (f d) (tree_map f r)
+  end.
 
 Example tree_map_example :
-  tree_map (fun x => x + 1) (Node (Node Leaf 1 Leaf) 2 (Node Leaf 3 (Node Leaf 4 Leaf)))
-  = (Node (Node Leaf 2 Leaf) 3 (Node Leaf 4 (Node Leaf 5 Leaf))).
+    tree_map (fun x => x + 1) (Node (Node Leaf 1 Leaf) 2 (Node Leaf 3 (Node Leaf 4 Leaf)))
+    = (Node (Node Leaf 2 Leaf) 3 (Node Leaf 4 (Node Leaf 5 Leaf))).
 Proof.
-Admitted.
+  reflexivity.
+Qed.
 
 (* [tree_map_flatten] shows that [map]
  * and [tree_map] are related by the [flatten] function.
  *)
 Theorem tree_map_flatten : forall {A B : Type} (f : A -> B) (t : tree A),
-  flatten (tree_map f t) = map f (flatten t).
+      flatten (tree_map f t) = map f (flatten t).
 Proof.
-Admitted.
+  intros A B f t.
+  elim t.
+    (* nil *)
+    reflexivity.
+    (* Node l d r *)
+    intros l hyp1 d r hyp2.
+    simpl.
+    rewrite hyp1, hyp2.
+    rewrite (map_append f (flatten l) _).
+    reflexivity.
+Qed.
 
 (* Using [fold], define a function that composes a list of functions,
  * applying the *last* function in the list *first*.
  *)
-Definition compose_list {A : Type} : list (A -> A) -> A -> A.
-Admitted.
+Definition compose_list {A} (l: list (A -> A)) (i: A) : A :=
+  fold (fun (f: A -> A) (x: A) => f x) i l.
 
 Example compose_list_example :
-  compose_list [fun x => x + 1; fun x => x * 2; fun x => x + 2] 1 = 7.
+    compose_list ((fun x => x + 1)::(fun x => x * 2)::(fun x => x + 2)::nil) 1 = 7.
 Proof.
-Admitted.
+  reflexivity.
+Qed.
 
 (* Show that [sum xs] is the same as converting each number
  * in the list [xs] to a function that adds that number,
@@ -195,7 +314,18 @@ Admitted.
 Theorem compose_list_map_add_sum : forall (xs : list nat),
     compose_list (map plus xs) 0 = sum xs.
 Proof.
-Admitted.
+  intros xs.
+  elim xs.
+    (* nil *)
+    reflexivity.
+    (* a::q *)
+    intros a q hyp.
+    unfold compose_list, map.
+    unfold compose_list, map in hyp.
+    simpl.
+    rewrite hyp.
+    reflexivity.
+Qed.
 
 (* You've reached the end of the problem set. Congrats!
  *
@@ -218,7 +348,9 @@ Definition cont A := forall R, (A -> R) -> R.
  * extract a normal functional value from a CPS computation.
  *)
 Definition extract_cont {A} (x : cont A) : A.
-Admitted.
+Proof.
+  exact (x A id).
+Qed.
 
 (* A *monad* is a common idiom in functional programming for composition
  * of computations that return certain higher-typed values.
@@ -229,11 +361,11 @@ Admitted.
  * Define these operations for [cont] (hint: there is only one way to
  * implement operations with these types for [cont]).
  *)
-Definition ret {A} (x : A) : cont A.
-Admitted.
+Definition ret {A} (x : A) : cont A :=
+  fun (R: Type) (k: A->R) => k x.
 
-Definition bind {A B} (x : cont A) (f : A -> cont B) : cont B.
-Admitted.
+Definition bind {A B} (x : cont A) (f : A -> cont B) : cont B :=
+  f (x A id).
 
 (* Monads are expected to satisfy certain laws relating the behavior
  * of these two operations. For the continuation monad, prove that
@@ -243,4 +375,6 @@ Theorem ret_bind : forall {A B} (x : A) (f : A -> cont B)
     R (k : B -> R),
     bind (ret x) f R k = f x R k.
 Proof.
-Admitted.
+  reflexivity.
+Qed.
+
